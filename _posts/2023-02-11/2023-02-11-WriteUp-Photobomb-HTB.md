@@ -66,7 +66,7 @@ Como no contamos con credenciales para conectarnos por SSH (puerto 22), vamos a 
 Ahora usamos la herramienta __whatweb__ para tener un poco más de información de la web:
 
 ```shell
-❯ whatweb http://photobomb.htb
+rabb1t@hold:~$ whatweb http://photobomb.htb
 [200 OK] Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux] nginx/1.18.0 (Ubuntu), IP[10.10.11.182], Script Title[Photobomb],UncommonHeaders[x-content-type-options], X-Frame-Options[SAMEORIGIN], X-XSS-Protection[1; mode=block], nginx[1.18.0]
 ```
 
@@ -176,7 +176,7 @@ Llegado a cierto punto intenté inyectar un comando de consola, pero no recibía
 ### tshark
 
 ```shell
-sudo tshark --color -nni any icmp
+rabb1t@hold:~$ sudo tshark --color -nni any icmp
 Capturing on 'any'
  ** (tshark:10598) 00:46:00.576112 [Main MESSAGE] -- Capture started.
  ** (tshark:10598) 00:46:00.576211 [Main MESSAGE] -- File: "/tmp/wireshark_anyXF07V1.pcapng"
@@ -192,7 +192,7 @@ Obtuvimos respuesta de la máquina, así que está ejecutando comandos. Procedem
 ## Obteniendo una shell como wizard
 ![BurpSuite photobomb petición](/assets/favicon/2023-02-11/photobomb5.png)
 ```shell
-nc -nlvp 4434           
+rabb1t@hold:~$ nc -nlvp 4434           
 Listening on 0.0.0.0 4434
 Connection received on 10.10.11.182 50650
 bash: cannot set terminal process group (732): Inappropriate ioctl for device

