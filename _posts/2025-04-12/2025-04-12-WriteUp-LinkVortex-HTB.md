@@ -406,7 +406,7 @@ file> /var/lib/ghost/config.production.json
 file>
 ```
 
-Podemos observar que existe un usuario llamado "bob". Probé a reutilizar la contraseña del usuario admin en el login del CMS de Ghost a través de SSH y funcionó.
+Podemos observar que existe un usuario llamado "bob" con una contraseña. Probé a utilizar la contraseña del usuario bob través de SSH y funcionó.
 
 
 ```shell
